@@ -1,14 +1,15 @@
 // Configuration for the Communication Module
 
-// Get current host dynamically
+// Get current host and protocol dynamically
 const currentHost = window.location.host;
+const currentProtocol = window.location.protocol; // 'http:' or 'https:'
 
 const AppConfig = {
-    // API Configuration - Use dynamic host
-    apiBaseUrl: 'http://' + currentHost,
+    // API Configuration - Use dynamic host and protocol
+    apiBaseUrl: currentProtocol + '//' + currentHost,
     
-    // WebSocket Configuration - Use dynamic host
-    wsBaseUrl: 'http://' + currentHost + '/ws-communication',
+    // WebSocket Configuration - Use dynamic host and protocol (wss:// for HTTPS)
+    wsBaseUrl: currentProtocol + '//' + currentHost + '/ws-communication',
     
     // STUN/TURN Servers for WebRTC - More reliable servers for cross-browser compatibility
     iceServers: {
