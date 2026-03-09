@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication Client - Fournisseur</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>💬 Module Communication</h1>
+            <div class="user-info">
+                <span id="currentUser">Utilisateur: Client</span>
+                <button id="switchUser" onclick="switchUser()">Changer de rôle</button>
+            </div>
+        </header>
+
+    <!-- Orders Section -->
+    <div class="orders-section" id="ordersSection">
+        <h2>📦 Mes Commandes</h2>
+        <div id="ordersList">
+            <!-- Orders will be populated here -->
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-section" id="chatArea" style="display: none;">
+        <div class="chat-header">
+            <button class="back-button" onclick="backToOrders()">← Retour</button>
+            <h2>Commande #<span id="commandeId"></span></h2>
+        </div>
+        <div class="messages-container" id="messagesContainer">
+            <!-- Messages will be displayed here -->
+        </div>
+        <div class="message-input">
+            <input type="text" id="messageInput" placeholder="Tapez votre message..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Envoyer</button>
+        </div>
+    </div>
+
+    <!-- Video Call Interface (for incoming and outgoing calls) -->
+    <div class="video-call-overlay" id="videoCallOverlay" style="display: none;">
+        <div class="video-container">
+            <div class="video-wrapper remote-video">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <div class="video-label" id="remoteVideoLabel">Participant</div>
+            </div>
+            <div class="video-wrapper local-video">
+                <video id="localVideo" autoplay playsinline muted></video>
+                <div class="video-label" id="localVideoLabel">Vous</div>
+            </div>
+        </div>
+        <div class="call-controls">
+            <button class="btn-end-call" onclick="endCall()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+                Raccrocher
+            </button>
+        </div>
+        <div class="call-status" id="callStatus">Appel en cours...</div>
+    </div>
+
+    <!-- Incoming Call Modal - Modern Design -->
+    <div class="incoming-call-modal" id="incomingCallModal" style="display: none;">
+        <div class="incoming-call-container">
+            <div class="caller-avatar">
+                <div class="avatar-circle">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <div class="avatar-ring"></div>
+            </div>
+            <h3 class="caller-name" id="incomingCallerName">Appel entrant</h3>
+            <p class="call-info" id="incomingCallInfo">En train d'appeler...</p>
+            <div class="call-timer">
+                <span class="ringing-dot"></span>
+                <span class="ringing-dot"></span>
+                <span class="ringing-dot"></span>
+            </div>
+            <div class="call-actions-modern">
+                <button class="btn-decline-modern" onclick="declineCall()">
+                    <div class="btn-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </div>
+                    <span>Refuser</span>
+                </button>
+                <button class="btn-accept-modern" onclick="acceptCall()">
+                    <div class="btn-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                    </div>
+                    <span>Accepter</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Options Modal -->
+    <div class="modal" id="callOptionsModal" style="display: none;">
+        <div class="modal-content call-options-modal">
+            <h3><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>Contacter le Fournisseur</h3>
+            <p class="modal-subtitle">Commande #<span id="callOptionsCommandeId"></span></p>
+            <div class="call-type-selection">
+                <button class="call-type-btn" onclick="initiateCallFromOrder('AUDIO')">
+                    <span class="call-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                    </span>
+                    <span class="call-label">Appel Audio</span>
+                </button>
+                <button class="call-type-btn" onclick="initiateCallFromOrder('VIDEO')">
+                    <span class="call-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                    </span>
+                    <span class="call-label">Appel Vidéo</span>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeCallOptionsModal()">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Conversation Modal -->
+    <div class="modal" id="newConversationModal" style="display: none;">
+        <div class="modal-content">
+            <h3>Nouvelle Conversation</h3>
+            <div class="form-group">
+                <label>ID Commande:</label>
+                <input type="number" id="newCommandeId" placeholder="Ex: 2045">
+            </div>
+            <div class="form-group">
+                <label>ID Client:</label>
+                <input type="number" id="newClientId" placeholder="Ex: 14">
+            </div>
+            <div class="form-group">
+                <label>ID Fournisseur:</label>
+                <input type="number" id="newFournisseurId" placeholder="Ex: 7">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="createConversation()">Créer</button>
+                <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SockJS and STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="config.js"></script>
+    <script src="webrtc.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
