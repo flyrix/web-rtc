@@ -93,21 +93,27 @@ function subscribeToUserQueue() {
     const userId = window.currentUserId;
     const sessionId = window.sessionId;
     
+    console.log('=== Subscribing to user queue ===');
+    console.log('User ID:', userId);
+    console.log('Session ID:', sessionId);
+    
     // Subscribe to session-specific topic for call notifications (primary)
-    window.stompClient.subscribe('/topic/user/' + userId + '/session/' + sessionId + '/calls', (message) => {
+    const sessionSubscription = window.stompClient.subscribe('/topic/user/' + userId + '/session/' + sessionId + '/calls', (message) => {
         const signalingData = JSON.parse(message.body);
         console.log('>>> Received call notification for session', sessionId, ':', signalingData);
         handleSignalingMessage(signalingData);
     });
     
     // Also subscribe to general user topic (fallback for calls without session ID)
-    window.stompClient.subscribe('/topic/user/' + userId + '/calls', (message) => {
+    const generalSubscription = window.stompClient.subscribe('/topic/user/' + userId + '/calls', (message) => {
         const signalingData = JSON.parse(message.body);
         console.log('>>> Received general call notification for user', userId, ':', signalingData);
         handleSignalingMessage(signalingData);
     });
     
     console.log('=== Subscribed to user queue for', userId, 'session', sessionId, '===');
+    console.log('Session subscription:', sessionSubscription);
+    console.log('General subscription:', generalSubscription);
 }
 
 // Handle signaling messages

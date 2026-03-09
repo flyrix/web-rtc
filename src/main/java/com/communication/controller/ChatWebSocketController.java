@@ -94,18 +94,19 @@ public class ChatWebSocketController {
         Long calleeId = signalingDTO.getCalleeId();
         String targetSessionId = signalingDTO.getTargetSessionId();
         
+        log.info("handleCallRequest - callerId: {}, calleeId: {}, targetSessionId: {}", 
+                signalingDTO.getCallerId(), calleeId, targetSessionId);
+        
         // Send notification to specific device via session-specific topic
         if (targetSessionId != null && !targetSessionId.isEmpty()) {
-            messagingTemplate.convertAndSend(
-                    "/topic/user/" + calleeId + "/session/" + targetSessionId + "/calls",
-                    signalingDTO
-            );
+            String topic = "/topic/user/" + calleeId + "/session/" + targetSessionId + "/calls";
+            log.info("Sending to session-specific topic: {}", topic);
+            messagingTemplate.convertAndSend(topic, signalingDTO);
         } else {
             // Fallback to old behavior (all devices)
-            messagingTemplate.convertAndSend(
-                    "/topic/user/" + calleeId + "/calls",
-                    signalingDTO
-            );
+            String topic = "/topic/user/" + calleeId + "/calls";
+            log.info("Sending to general user topic: {}", topic);
+            messagingTemplate.convertAndSend(topic, signalingDTO);
         }
         
         // Also send via conversation topic (for those who have joined)
