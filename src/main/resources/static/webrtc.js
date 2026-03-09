@@ -143,28 +143,41 @@ class WebRTCManager {
 
     // Play dial tone for outgoing call
     playDialTone() {
+        console.log('=== Playing dial tone ===');
+        this.stopDialTone(); // Stop any existing dial tone
+        
         const ctx = this.initAudioContext();
         
+        // Create oscillator for dial tone
         this.dialOscillator = ctx.createOscillator();
         const dialGain = ctx.createGain();
         
         this.dialOscillator.connect(dialGain);
         dialGain.connect(ctx.destination);
         
-        // Dial tone - steady tone
-        this.dialOscillator.frequency.setValueAtTime(440, ctx.currentTime);
+        // Dial tone - steady tone (like a phone dial tone)
+        this.dialOscillator.frequency.setValueAtTime(440, ctx.currentTime); // A4 note
         this.dialOscillator.type = 'sine';
-        dialGain.gain.setValueAtTime(0.2, ctx.currentTime);
+        dialGain.gain.setValueAtTime(0.3, ctx.currentTime); // Louder volume
         
         this.dialOscillator.start(ctx.currentTime);
         
-        // Stop after 2 seconds when call is established
-        setTimeout(() => {
-            if (this.dialOscillator) {
+        // Store the gain node to stop it later
+        this.dialGainNode = dialGain;
+        
+        // Keep playing until stopped manually (when call is accepted/declined)
+        console.log('Dial tone started');
+    }
+    
+    // Stop dial tone
+    stopDialTone() {
+        if (this.dialOscillator) {
+            try {
                 this.dialOscillator.stop();
-                this.dialOscillator = null;
-            }
-        }, 2000);
+            } catch(e) {}
+            this.dialOscillator = null;
+        }
+        this.dialGainNode = null;
     }
 
     // Play busy tone
@@ -676,6 +689,9 @@ class WebRTCManager {
         try {
             console.log('=== handleCallAccepted called ===');
             
+            // Stop dial tone when call is accepted
+            this.stopDialTone();
+            
             // If peer connection doesn't exist (shouldn't happen), create it
             if (!this.peerConnection) {
                 console.log('Creating peer connection in handleCallAccepted');
@@ -768,6 +784,9 @@ class WebRTCManager {
 
     // Handle call declined
     handleCallDeclined(signalingData) {
+        // Stop dial tone
+        this.stopDialTone();
+        
         // Play busy tone
         this.playBusyTone();
         alert('L\'appel a été refusé');
@@ -1025,6 +1044,9 @@ class WebRTCManager {
     // Cleanup resources
     cleanup() {
         console.log('=== Cleanup called ===');
+        
+        // Stop dial tone if playing
+        this.stopDialTone();
         
         // Clear connection timeout
         this.clearConnectionTimeout();
