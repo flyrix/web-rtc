@@ -15,6 +15,8 @@ public class SignalingDTO {
     private Long conversationId;
     private Long callerId;
     private Long calleeId;
+    private String targetSessionId; // Session ID of the specific device to target
+    private String callerSessionId; // Session ID of the caller
     private String sdp; // Session Description Protocol
     private String candidate; // ICE candidate
     private String callType; // AUDIO, VIDEO

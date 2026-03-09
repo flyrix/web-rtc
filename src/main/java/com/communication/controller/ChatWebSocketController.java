@@ -92,12 +92,21 @@ public class ChatWebSocketController {
 
     private void handleCallRequest(SignalingDTO signalingDTO) {
         Long calleeId = signalingDTO.getCalleeId();
+        String targetSessionId = signalingDTO.getTargetSessionId();
         
-        // Send notification to callee via user-specific topic (so they receive it even without joining conversation)
-        messagingTemplate.convertAndSend(
-                "/topic/user/" + calleeId + "/calls",
-                signalingDTO
-        );
+        // Send notification to specific device via session-specific topic
+        if (targetSessionId != null && !targetSessionId.isEmpty()) {
+            messagingTemplate.convertAndSend(
+                    "/topic/user/" + calleeId + "/session/" + targetSessionId + "/calls",
+                    signalingDTO
+            );
+        } else {
+            // Fallback to old behavior (all devices)
+            messagingTemplate.convertAndSend(
+                    "/topic/user/" + calleeId + "/calls",
+                    signalingDTO
+            );
+        }
         
         // Also send via conversation topic (for those who have joined)
         messagingTemplate.convertAndSend(
@@ -120,7 +129,25 @@ public class ChatWebSocketController {
     }
 
     private void handleCallAccept(SignalingDTO signalingDTO) {
-        // Forward to caller via conversation topic
+        // Get the caller's session ID to send response to specific device
+        String callerSessionId = signalingDTO.getCallerSessionId();
+        Long callerId = signalingDTO.getCallerId();
+        
+        // Send to caller's specific session if available
+        if (callerSessionId != null && !callerSessionId.isEmpty()) {
+            messagingTemplate.convertAndSend(
+                    "/topic/user/" + callerId + "/session/" + callerSessionId + "/calls",
+                    signalingDTO
+            );
+        } else {
+            // Fallback to conversation topic
+            messagingTemplate.convertAndSend(
+                    "/topic/conversation/" + signalingDTO.getConversationId() + "/call",
+                    signalingDTO
+            );
+        }
+        
+        // Also send via conversation topic (for those who have joined)
         messagingTemplate.convertAndSend(
                 "/topic/conversation/" + signalingDTO.getConversationId() + "/call",
                 signalingDTO
@@ -190,22 +217,42 @@ public class ChatWebSocketController {
                 signalingDTO
         );
         
-        // Also send to the other user's personal topic for better delivery
+        // Send to the target session if available
         Long callerId = signalingDTO.getCallerId();
         Long calleeId = signalingDTO.getCalleeId();
+        String targetSessionId = signalingDTO.getTargetSessionId();
         
-        // Send to both participants to ensure delivery
-        if (callerId != null) {
-            messagingTemplate.convertAndSend(
-                    "/topic/user/" + callerId + "/calls",
-                    signalingDTO
-            );
+        // Determine which user should receive this message
+        // If we're the caller, send to callee; if we're callee, send to caller
+        // Use session ID if available
+        Long recipientId = null;
+        String recipientSessionId = null;
+        
+        // Check if this is from the initiator or responder
+        if (signalingDTO.getType().equals("offer") || signalingDTO.getType().equals("ice-candidate")) {
+            // From caller to callee
+            recipientId = calleeId;
+            recipientSessionId = targetSessionId;
+        } else {
+            // From callee to caller
+            recipientId = callerId;
+            // For response, use callerSessionId if available
+            recipientSessionId = signalingDTO.getCallerSessionId();
         }
-        if (calleeId != null) {
+        
+        if (recipientId != null && recipientSessionId != null && !recipientSessionId.isEmpty()) {
             messagingTemplate.convertAndSend(
-                    "/topic/user/" + calleeId + "/calls",
+                    "/topic/user/" + recipientId + "/session/" + recipientSessionId + "/calls",
                     signalingDTO
             );
+        } else {
+            // Fallback to user topic
+            if (recipientId != null) {
+                messagingTemplate.convertAndSend(
+                        "/topic/user/" + recipientId + "/calls",
+                        signalingDTO
+                );
+            }
         }
     }
 

@@ -1,10 +1,18 @@
 // Main Application JavaScript
 
+// Generate unique session ID for this device
+function generateSessionId() {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
 // Application State
 window.currentUserId = '14';
 window.currentUserType = 'CLIENT'; // CLIENT or FOURNISSEUR
 window.currentConversation = null;
 window.stompClient = null;
+window.sessionId = generateSessionId(); // Unique session ID for this device
+
+console.log('Session ID:', window.sessionId);
 
 // Initialize application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -79,17 +87,20 @@ function subscribeToConversation() {
 }
 
 // Subscribe to user queue for calls and notifications (receives calls even without selecting a conversation)
+// Now uses session ID to identify each device uniquely
 function subscribeToUserQueue() {
     const userId = window.currentUserId;
+    const sessionId = window.sessionId;
     
-    // Subscribe to user-specific topic for call notifications
-    window.stompClient.subscribe('/topic/user/' + userId + '/calls', (message) => {
+    // Subscribe to session-specific topic for call notifications
+    // This ensures only the specific device receives the call
+    window.stompClient.subscribe('/topic/user/' + userId + '/session/' + sessionId + '/calls', (message) => {
         const signalingData = JSON.parse(message.body);
-        console.log('>>> Received direct call notification for user', userId, ':', signalingData);
+        console.log('>>> Received call notification for session', sessionId, ':', signalingData);
         handleSignalingMessage(signalingData);
     });
     
-    console.log('=== Subscribed to user queue for', userId, '===');
+    console.log('=== Subscribed to user queue for', userId, 'session', sessionId, '===');
 }
 
 // Handle signaling messages

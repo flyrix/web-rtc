@@ -10,6 +10,7 @@ class WebRTCManager {
         this.currentConversationId = null;
         this.currentCallerId = null;
         this.currentCalleeId = null;
+        this.targetSessionId = null; // Session ID of the device we're calling/connected to
         
         // Audio for notifications
         this.audioContext = null;
@@ -500,6 +501,8 @@ class WebRTCManager {
                 ? conversation.fournisseurId 
                 : conversation.clientId;
             
+            // Note: We don't know the callee's session ID yet, will be determined when they accept
+            
             // Initialize media
             await this.initializeMedia(callType);
             
@@ -516,6 +519,7 @@ class WebRTCManager {
                 conversationId: conversationId,
                 callerId: parseInt(window.currentUserId),
                 calleeId: this.currentCalleeId,
+                callerSessionId: window.sessionId, // Include caller's session ID
                 callType: callType,
                 sdp: JSON.stringify(offer)
             });
@@ -632,6 +636,7 @@ class WebRTCManager {
                 conversationId: this.currentConversationId,
                 callerId: this.currentCallerId,
                 calleeId: this.currentCalleeId,
+                targetSessionId: window.sessionId, // This device's session ID
                 callType: this.currentCallType,
                 sdp: JSON.stringify(answer)
             });
@@ -691,6 +696,12 @@ class WebRTCManager {
             
             // Stop dial tone when call is accepted
             this.stopDialTone();
+            
+            // Store the session ID of the device that accepted the call
+            if (signalingData.targetSessionId) {
+                this.targetSessionId = signalingData.targetSessionId;
+                console.log('Target session ID set to:', this.targetSessionId);
+            }
             
             // If peer connection doesn't exist (shouldn't happen), create it
             if (!this.peerConnection) {
@@ -854,6 +865,7 @@ class WebRTCManager {
             conversationId: this.currentConversationId,
             callerId: parseInt(window.currentUserId),
             calleeId: this.isInitiator ? this.currentCalleeId : this.currentCallerId,
+            targetSessionId: this.targetSessionId, // Target specific device
             candidate: JSON.stringify(candidate)
         });
     }
