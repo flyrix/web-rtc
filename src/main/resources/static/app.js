@@ -88,15 +88,22 @@ function subscribeToConversation() {
 
 // Subscribe to user queue for calls and notifications (receives calls even without selecting a conversation)
 // Now uses session ID to identify each device uniquely
+// Subscribes to both session-specific topic (for multi-device support) and general topic (for backward compatibility)
 function subscribeToUserQueue() {
     const userId = window.currentUserId;
     const sessionId = window.sessionId;
     
-    // Subscribe to session-specific topic for call notifications
-    // This ensures only the specific device receives the call
+    // Subscribe to session-specific topic for call notifications (primary)
     window.stompClient.subscribe('/topic/user/' + userId + '/session/' + sessionId + '/calls', (message) => {
         const signalingData = JSON.parse(message.body);
         console.log('>>> Received call notification for session', sessionId, ':', signalingData);
+        handleSignalingMessage(signalingData);
+    });
+    
+    // Also subscribe to general user topic (fallback for calls without session ID)
+    window.stompClient.subscribe('/topic/user/' + userId + '/calls', (message) => {
+        const signalingData = JSON.parse(message.body);
+        console.log('>>> Received general call notification for user', userId, ':', signalingData);
         handleSignalingMessage(signalingData);
     });
     

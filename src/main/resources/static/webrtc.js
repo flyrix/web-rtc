@@ -16,6 +16,7 @@ class WebRTCManager {
         this.audioContext = null;
         this.ringtoneInterval = null;
         this.ringtoneOscillator = null;
+        this.dialInterval = null; // For dial tone ringing pattern
         
         // Connection timeout
         this.connectionTimeout = null;
@@ -142,32 +143,71 @@ class WebRTCManager {
         }
     }
 
-    // Play dial tone for outgoing call
+    // Play dial tone for outgoing call (with ringing pattern like real phone)
     playDialTone() {
-        console.log('=== Playing dial tone ===');
+        console.log('=== Playing dial tone with ringing pattern ===');
         this.stopDialTone(); // Stop any existing dial tone
         
         const ctx = this.initAudioContext();
         
-        // Create oscillator for dial tone
-        this.dialOscillator = ctx.createOscillator();
-        const dialGain = ctx.createGain();
+        // Create a ringing pattern: beep-beep (1s each) - pause 2s - repeat
+        const playRing = () => {
+            if (this.dialOscillator) {
+                try {
+                    this.dialOscillator.stop();
+                } catch(e) {}
+            }
+            
+            // Create first beep
+            this.dialOscillator = ctx.createOscillator();
+            this.dialGainNode = ctx.createGain();
+            
+            this.dialOscillator.connect(this.dialGainNode);
+            this.dialGainNode.connect(ctx.destination);
+            
+            // Ring frequency (more pleasant than pure sine)
+            this.dialOscillator.frequency.setValueAtTime(440, ctx.currentTime); // A4
+            this.dialOscillator.type = 'sine';
+            
+            // First beep: 1 second
+            this.dialGainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+            this.dialGainNode.gain.setValueAtTime(0.3, ctx.currentTime + 0.5);
+            this.dialGainNode.gain.setValueAtTime(0, ctx.currentTime + 1);
+            
+            this.dialOscillator.start(ctx.currentTime);
+            this.dialOscillator.stop(ctx.currentTime + 1);
+            
+            // Second beep: 1 second after first ends
+            setTimeout(() => {
+                if (!this.dialOscillator || !this.dialGainNode) return;
+                
+                this.dialOscillator = ctx.createOscillator();
+                this.dialGainNode = ctx.createGain();
+                
+                this.dialOscillator.connect(this.dialGainNode);
+                this.dialGainNode.connect(ctx.destination);
+                
+                this.dialOscillator.frequency.setValueAtTime(440, ctx.currentTime);
+                this.dialOscillator.type = 'sine';
+                
+                this.dialGainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                this.dialGainNode.gain.setValueAtTime(0.3, ctx.currentTime + 0.5);
+                this.dialGainNode.gain.setValueAtTime(0, ctx.currentTime + 1);
+                
+                this.dialOscillator.start(ctx.currentTime);
+                this.dialOscillator.stop(ctx.currentTime + 1);
+            }, 1000);
+        };
         
-        this.dialOscillator.connect(dialGain);
-        dialGain.connect(ctx.destination);
+        // Play first ring
+        playRing();
         
-        // Dial tone - steady tone (like a phone dial tone)
-        this.dialOscillator.frequency.setValueAtTime(440, ctx.currentTime); // A4 note
-        this.dialOscillator.type = 'sine';
-        dialGain.gain.setValueAtTime(0.3, ctx.currentTime); // Louder volume
+        // Schedule subsequent rings every 3 seconds (1s beep + 2s pause)
+        this.dialInterval = setInterval(() => {
+            playRing();
+        }, 3000);
         
-        this.dialOscillator.start(ctx.currentTime);
-        
-        // Store the gain node to stop it later
-        this.dialGainNode = dialGain;
-        
-        // Keep playing until stopped manually (when call is accepted/declined)
-        console.log('Dial tone started');
+        console.log('Dial tone ring pattern started');
     }
     
     // Stop dial tone
@@ -177,6 +217,10 @@ class WebRTCManager {
                 this.dialOscillator.stop();
             } catch(e) {}
             this.dialOscillator = null;
+        }
+        if (this.dialInterval) {
+            clearInterval(this.dialInterval);
+            this.dialInterval = null;
         }
         this.dialGainNode = null;
     }
