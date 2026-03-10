@@ -194,6 +194,23 @@ public class ChatWebSocketController {
                 signalingDTO
         );
         
+        // Also notify both users via their personal topics so they receive the call-end
+        Long callerId = signalingDTO.getCallerId();
+        Long calleeId = signalingDTO.getCalleeId();
+        
+        if (callerId != null) {
+            messagingTemplate.convertAndSend(
+                    "/topic/user/" + callerId + "/calls",
+                    signalingDTO
+            );
+        }
+        if (calleeId != null) {
+            messagingTemplate.convertAndSend(
+                    "/topic/user/" + calleeId + "/calls",
+                    signalingDTO
+            );
+        }
+        
         // Store system message
         Message.MessageType messageType = "VIDEO".equals(signalingDTO.getCallType())
                 ? Message.MessageType.VIDEO_CALL_END
